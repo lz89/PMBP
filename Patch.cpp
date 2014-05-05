@@ -19,6 +19,11 @@ _px(px), _py(py), _max_disp(maxdisp), side(i_side)
 CPatch::CPatch(float a, float b, float c, int maxdisp) : _a(a), _b(b), _c(c)
 {}
 
+CPatch::CPatch(CPatch &in_patch) : _a(in_patch._a), _b(in_patch._b), _c(2*in_patch._c),
+	_max_disp(2*in_patch._max_disp)
+{}
+
+
 float CPatch::disparity()
 {
 	return _a * _px + _b * _py + _c;

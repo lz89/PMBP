@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8) 
-PROJECT (PatchMatch)
+PROJECT (PMBP)
 
 #set(VTK_DIR "C:/Program Files (x86)/VTK/")
 
@@ -23,6 +23,6 @@ set( NAME_HEADERS
 
 INCLUDE_DIRECTORIES( ${CMAKE_CURRENT_SOURCE_DIR}/include )
 #include(${VTK_USE_FILE})
-add_executable( PatchMatch ${NAME_SRC} ${NAME_HEADERS} )
-target_link_libraries( PatchMatch ${OpenCV_LIBS} #${VTK_LIBRARIES}
+add_executable( PMBP ${NAME_SRC} ${NAME_HEADERS} )
+target_link_libraries( PMBP ${OpenCV_LIBS} #${VTK_LIBRARIES}
 )

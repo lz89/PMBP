@@ -69,9 +69,9 @@ int main( int argc, char** argv )
 	cv::Mat disparity, recLeftImage, recRightImage;
 	disparity = stereo.calcDisparityMap();
 // 	disparity = stereo.getnormDisparityMap();
-	stereo.getRectifiedImage(recLeftImage, recRightImage);
-	cv::imwrite(folderName +"\\leftRecImg.png", recLeftImage);
-	cv::imwrite(folderName +"\\rightRecImg.png", recRightImage);
+// 	stereo.getRectifiedImage(recLeftImage, recRightImage);
+// 	cv::imwrite(folderName +"\\leftRecImg.png", recLeftImage);
+// 	cv::imwrite(folderName +"\\rightRecImg.png", recRightImage);
 	cv::imwrite(folderName +"\\disparity.png", disparity);
 // 	stereo.calc3DPoints();
 	return 0;

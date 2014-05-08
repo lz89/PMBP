@@ -17,7 +17,11 @@ public:
 
 	CPatch(int px, int py, int maxdisp, IMAGE_SIDE side);
 	CPatch(float a, float b, float c, int maxdisp);
-	CPatch(CPatch &in_patch);
+	// Overload assignment operator
+	CPatch& operator=(CPatch copy_Patch);
+	void swap(CPatch& other);
+
+	static CPatch fromCoarser(const CPatch &coarse_patch, int currPx, int currPy);
 	void setPlaneParams(float a, float b, float c) {_a = a; _b = b; _c = c;}
 	float disparity();
 	float disparity(int ix, int iy);

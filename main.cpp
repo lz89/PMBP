@@ -60,8 +60,8 @@ int main( int argc, char** argv )
 
 	Stereo stereo(alg, extrinsic_filename, intrinsic_filename, config_filename);
 	// Set input stereo image pair	
-	cv::Mat Img1 = cv::imread(img1_filename);
-	cv::Mat Img2 = cv::imread(img2_filename);
+	cv::Mat Img1 = cv::imread(img1_filename, CV_LOAD_IMAGE_UNCHANGED);
+	cv::Mat Img2 = cv::imread(img2_filename, CV_LOAD_IMAGE_UNCHANGED);
 
 // 	stereo.setInputImages(Img1, Img2);
 	stereo.setRectImages(Img1, Img2);

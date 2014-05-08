@@ -16,17 +16,36 @@ _px(px), _py(py), _max_disp(maxdisp), side(i_side)
 	Init();
 }
 
-CPatch::CPatch(float a, float b, float c, int maxdisp) : _a(a), _b(b), _c(c)
+CPatch::CPatch(float a, float b, float c, int maxdisp) : _a(a), _b(b), _c(c), _max_disp(maxdisp)
 {}
 
-CPatch::CPatch(CPatch &in_patch) : _a(in_patch._a), _b(in_patch._b), _c(2*in_patch._c),
-	_max_disp(2*in_patch._max_disp)
-{}
-
+CPatch CPatch::fromCoarser(const CPatch &coarse_patch, int currPx, int currPy)
+{
+	CPatch p(coarse_patch._a, coarse_patch._b, 2*coarse_patch._c, 2*coarse_patch._max_disp);
+	p.side = coarse_patch.side;
+	p._px = currPx;
+	p._py = currPy;
+	return p;
+}
+// Overload assignment operator for Patch class
+CPatch& CPatch::operator=(CPatch copy_Patch)
+{
+	swap(copy_Patch);
+	return *this;
+}
+// Only assign plane parameters
+void CPatch::swap(CPatch& other)
+{
+	std::swap(_a, other._a);
+	std::swap(_b, other._b);
+	std::swap(_c, other._c);
+}
 
 float CPatch::disparity()
 {
-	return _a * _px + _b * _py + _c;
+	float d_temp = abs(_a * _px + _b * _py + _c);
+	// Should be larger than minimum disparity in general
+	return d_temp <= _max_disp ? d_temp : _max_disp;	// guarantee positive disparity
 }
 
 float CPatch::disparity(int ix, int iy)

@@ -51,6 +51,8 @@ private:
 	int pattern_width;
 	// Pattern height
 	int pattern_height;
+	// Number of layers for multi-scale
+	int NumOfLayers;
 	// Camera parameters
 	cv::Mat cameraMatrix[2];
 	cv::Mat distCoeffs[2];

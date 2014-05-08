@@ -52,6 +52,7 @@ Stereo::Stereo(int stereo_type, const std::string &exfilename, const std::string
 		fs["Iter"] >> pm->Iter;
 		fs["WindowSize"] >> pm->WindowSize;
 		fs["maxDisparity"] >> pm->maxDisparity;
+		fs["NumOfLayers"] >> NumOfLayers;
 	}
 
 	init();
@@ -138,7 +139,10 @@ cv::Mat& Stereo::calcDisparityMap()
 	}
 	else if (match_type == STEREO_PM)
 	{
-		(*pm)(recLeftImage, recRightImage, rawDisparity);
+		if (NumOfLayers > 1)
+			(*pm)(recLeftImage, recRightImage, rawDisparity, NumOfLayers);
+		else
+			(*pm)(recLeftImage, recRightImage, rawDisparity);
 		modDisparity = rawDisparity;
 	}
 

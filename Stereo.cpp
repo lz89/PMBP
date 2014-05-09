@@ -147,10 +147,10 @@ cv::Mat& Stereo::calcDisparityMap()
 	}
 
 	// Get a normalized disparity for display
-	double max, min;
-	cv::minMaxLoc(modDisparity, &min, &max);
-	normDisparity = ((modDisparity - min) * (255-0)) / (max - min) + 0;
-	cv::rectangle(normDisparity, roi1, cv::Scalar(255, 0, 0));
+// 	double max, min;
+// 	cv::minMaxLoc(modDisparity, &min, &max);
+// 	normDisparity = ((modDisparity - min) * (255-0)) / (max - min) + 0;
+// 	cv::rectangle(normDisparity, roi1, cv::Scalar(255, 0, 0));
 	return modDisparity;
 }
 

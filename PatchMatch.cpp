@@ -30,6 +30,8 @@ void CStereoPM::operator()(cv::Mat &left, cv::Mat &right, cv::Mat &disp)
 		cvtColor(Right_Img, Right_Img, CV_BGR2GRAY);
 	_disp_A.create( Left_Img.size(), CV_16S);
 	_disp_B.create( Right_Img.size(), CV_16S);
+	_f_disp_A.create(Left_Img.size(), CV_32F);
+	_f_disp_B.create(Right_Img.size(), CV_32F);
 
 	currLImage = Left_Img;
 	currRImage = Right_Img;
@@ -48,6 +50,7 @@ void CStereoPM::operator()(cv::Mat &left, cv::Mat &right, cv::Mat &disp)
 			double up_cost = 0.0, left_cost = 0.0, centre_cost = 0.0;
 			// Image a (odd)
 			std::cout << "Odd Image A\n";
+			double t = (double)cv::getTickCount();
 			for (int y = 1; y < _imgSize.height; y++)
 			{
 				for (int x = 1; x < _imgSize.width; x++)
@@ -82,8 +85,11 @@ void CStereoPM::operator()(cv::Mat &left, cv::Mat &right, cv::Mat &disp)
 				}
 // 				updateDispA();
 			}
+			t = ((double)cv::getTickCount() - t)/cv::getTickFrequency();
+			std::cout << "Times passed in seconds: " << t << std::endl;
 			// Image b (odd)
 			std::cout << "Odd Image B\n";
+			t = (double)cv::getTickCount();
 			for (int y = 1; y < _imgSize.height; y++)
 			{
 				for (int x = 1; x < _imgSize.width; x++)
@@ -117,12 +123,15 @@ void CStereoPM::operator()(cv::Mat &left, cv::Mat &right, cv::Mat &disp)
 				}
 // 				updateDispB();
 			}
+			t = ((double)cv::getTickCount() - t)/cv::getTickFrequency();
+			std::cout << "Times passed in seconds: " << t << std::endl;
 		}
 		else	// even iteration: from bottom-right to top-left 
 		{
 			double bottom_cost = 0.0, right_cost = 0.0, centre_cost = 0.0;
 			// Image a (even)
 			std::cout << "Even Image A\n";
+			double t = (double)cv::getTickCount();
 			for (int y = _imgSize.height - 2; y >= 0; y--)
 			{
 				for (int x = _imgSize.width - 2; x >= 0; x--)
@@ -154,8 +163,11 @@ void CStereoPM::operator()(cv::Mat &left, cv::Mat &right, cv::Mat &disp)
 				}
 // 				updateDispA();
 			}
+			t = ((double)cv::getTickCount() - t)/cv::getTickFrequency();
+			std::cout << "Times passed in seconds: " << t << std::endl;
 			// Image b (even)
 			std::cout << "Even Image B\n";
+			t = (double)cv::getTickCount();
 			for (int y = _imgSize.height - 2; y >= 0; y--)
 			{
 				for (int x = _imgSize.width - 2; x >= 0; x--)
@@ -187,10 +199,12 @@ void CStereoPM::operator()(cv::Mat &left, cv::Mat &right, cv::Mat &disp)
 				}
 // 				updateDispB();
 			}
+			t = ((double)cv::getTickCount() - t)/cv::getTickFrequency();
+			std::cout << "Times passed in seconds: " << t << std::endl;
 		}		
 	}
-	updateDisp();
-	disp = _disp_A;
+	updateFloatDisp();
+	disp = _f_disp_A;
 }
 
 void CStereoPM::operator()(cv::Mat &left, cv::Mat &right, cv::Mat &disp, int layer)
@@ -207,7 +221,8 @@ void CStereoPM::operator()(cv::Mat &left, cv::Mat &right, cv::Mat &disp, int lay
 		cvtColor(Right_Img, Right_Img, CV_BGR2GRAY);
 	_disp_A.create( Left_Img.size(), CV_16S);
 	_disp_B.create( Right_Img.size(), CV_16S);
-
+	_f_disp_A.create(Left_Img.size(), CV_32F);
+	_f_disp_B.create(Right_Img.size(), CV_32F);
 
 	for (int l = layer; l >= 1; l--)
 	{		
@@ -240,7 +255,7 @@ void CStereoPM::operator()(cv::Mat &left, cv::Mat &right, cv::Mat &disp, int lay
 // 					std::cout << "x:" << x << ";";
 // 				}
 				// Spatial propagation
-				// Current cost			
+				// Current cost
 				centre_cost = _cost->calcCost_A(cv::Point2i(x, y), Patch_Img_A[y*currLImage.cols + x]);
 				// Up neighbor
 				up_cost = _cost->calcCost_A(cv::Point2i(x, y), Patch_Img_A[(y-1)*currLImage.cols + x]);	
@@ -391,8 +406,10 @@ void CStereoPM::operator()(cv::Mat &left, cv::Mat &right, cv::Mat &disp, int lay
 		t = ((double)cv::getTickCount() - t)/cv::getTickFrequency();
 		std::cout << "Times passed in seconds: " << t << std::endl;
 	}
-	updateDisp();
-	disp = _disp_A;
+// 	updateDisp();
+// 	disp = _disp_A;
+	updateFloatDisp();
+	disp = _f_disp_A;
 }
 
 void CStereoPM::planeRefine(CPatch & curr_ptch)
@@ -536,4 +553,16 @@ void CStereoPM::updateDispB()
 	}
 	imwrite("dispB"+std::to_string(static_cast<long long>(disp_numB))+".png", _disp_B);
 	disp_numB++;
+}
+
+void CStereoPM::updateFloatDisp()
+{
+	for (int y = 0; y < _imgSize.height; y++)
+	{
+		for (int x = 0; x < _imgSize.width; x++)
+		{
+			_f_disp_A.at<float>(y, x) = Patch_Img_A[y * _imgSize.width + x].disparity();
+			_f_disp_B.at<float>(y, x) = Patch_Img_B[y * _imgSize.width + x].disparity();
+		}
+	}
 }

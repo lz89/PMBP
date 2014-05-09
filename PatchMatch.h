@@ -28,6 +28,7 @@ private:
 	std::vector<CPatch> Patch_Img_Pre_A, Patch_Img_Pre_B; 
 	// Disparity image
 	cv::Mat _disp_A, _disp_B;
+	cv::Mat _f_disp_A, _f_disp_B;
 	// Image size
 	cv::Size _imgSize;
 	
@@ -39,6 +40,7 @@ private:
 	void updateDisp();
 	void updateDispA();
 	void updateDispB();
+	void updateFloatDisp();
 
 	// Plane refinement step
 	void planeRefine(CPatch & curr_ptch);

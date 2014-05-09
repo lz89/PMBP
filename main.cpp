@@ -62,17 +62,22 @@ int main( int argc, char** argv )
 	// Set input stereo image pair	
 	cv::Mat Img1 = cv::imread(img1_filename, CV_LOAD_IMAGE_UNCHANGED);
 	cv::Mat Img2 = cv::imread(img2_filename, CV_LOAD_IMAGE_UNCHANGED);
-
+	std::cout << "Images read \n";
 // 	stereo.setInputImages(Img1, Img2);
 	stereo.setRectImages(Img1, Img2);
-	
+
 	cv::Mat disparity, recLeftImage, recRightImage;
 	disparity = stereo.calcDisparityMap();
+	std::ofstream myfile;
+	myfile.open("disparity.csv");
+	myfile << format(disparity,"csv") << std::endl << std::endl;
+	myfile.close();
+	
 // 	disparity = stereo.getnormDisparityMap();
 // 	stereo.getRectifiedImage(recLeftImage, recRightImage);
 // 	cv::imwrite(folderName +"\\leftRecImg.png", recLeftImage);
 // 	cv::imwrite(folderName +"\\rightRecImg.png", recRightImage);
-	cv::imwrite(folderName +"\\disparity.png", disparity);
+// 	cv::imwrite(folderName +"\\disparity.png", disparity);
 // 	stereo.calc3DPoints();
 	return 0;
 }

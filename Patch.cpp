@@ -21,7 +21,35 @@ CPatch::CPatch(float a, float b, float c, int maxdisp) : _a(a), _b(b), _c(c), _m
 
 CPatch CPatch::fromCoarser(const CPatch &coarse_patch, int currPx, int currPy)
 {
-	CPatch p(coarse_patch._a, coarse_patch._b, 2*coarse_patch._c, 2*coarse_patch._max_disp);
+	float curr_a, curr_b;	
+
+	// If (currPx == prevPx), curr_a = 2 * coarse_patch._a;
+	// If (currPy == prevPy), new_b = 2 * coarse_patch._b;
+	// Otherwise: curr_a = 2 * coarse_patch._a * coarse_patch._px / currPx;
+	//			new_b = 2 * coarse_patch._b * coarse_patch._py / currPy;
+	if (currPx != 0 && currPy != 0)
+	{
+		curr_a = 2 * coarse_patch._a * coarse_patch._px / currPx;
+		curr_b = 2 * coarse_patch._b * coarse_patch._py / currPy;
+	}
+	else if (currPx == 0 && currPy == 0)
+	{
+		curr_a = 2 * coarse_patch._a;
+		curr_b = 2 * coarse_patch._b;
+	}
+	else if (currPx == 0 && currPy != 0)
+	{
+		curr_a = 2 * coarse_patch._a;
+		curr_b = 2 * coarse_patch._b * coarse_patch._py / currPy;
+	}
+	else	// currPx != 0 && currPy == 0
+	{
+		curr_a = 2 * coarse_patch._a * coarse_patch._px / currPx;
+		curr_b = 2 * coarse_patch._b;
+	}
+
+
+	CPatch p(curr_a, curr_b, 2*coarse_patch._c, 2*coarse_patch._max_disp);
 	p.side = coarse_patch.side;
 	p._px = currPx;
 	p._py = currPy;

@@ -1,11 +1,12 @@
 #include "PatchMatch.h"
 #include <math.h>
+#include <fstream>
 
 int disp_num = 0;
 int disp_numA = 0;
 int disp_numB = 0;
 
-CStereoPM::CStereoPM() : Iter(3), WindowSize(35), maxDisparity(224), rng_refine(cv::getTickCount())
+CStereoPM::CStereoPM() : Iter(3), WindowSize(35), maxDisparity(224), rng_refine(cv::getTickCount()), _prevPM_exist(false)
 {
 }
 
@@ -207,6 +208,12 @@ void CStereoPM::operator()(cv::Mat &left, cv::Mat &right, cv::Mat &disp)
 	disp = _f_disp_A;
 }
 
+
+
+/************************************************************************/
+/*             Multi-scale PM                                           */
+/************************************************************************/
+
 void CStereoPM::operator()(cv::Mat &left, cv::Mat &right, cv::Mat &disp, int layer)
 {
 	// Initialization
@@ -221,16 +228,20 @@ void CStereoPM::operator()(cv::Mat &left, cv::Mat &right, cv::Mat &disp, int lay
 		cvtColor(Right_Img, Right_Img, CV_BGR2GRAY);
 	_disp_A.create( Left_Img.size(), CV_16S);
 	_disp_B.create( Right_Img.size(), CV_16S);
-	_f_disp_A.create(Left_Img.size(), CV_32F);
-	_f_disp_B.create(Right_Img.size(), CV_32F);
+	_f_disp_A = cv::Mat::zeros(Left_Img.size(), CV_32F);
+	_f_disp_B = cv::Mat::zeros(Right_Img.size(), CV_32F);
+// 	_f_disp_A.create(Left_Img.size(), CV_32F);
+// 	_f_disp_B.create(Right_Img.size(), CV_32F);
 
 	for (int l = layer; l >= 1; l--)
 	{		
 		int scale = static_cast<int>(pow(2.0, l-1));
+
 // 		cv::pyrDown(Left_Img, currLImage, cv::Size((_imgSize.width + 1) / scale, (_imgSize.height + 1) / scale));
 // 		cv::pyrDown(Right_Img, currRImage, cv::Size(_imgSize.width / scale, _imgSize.height / scale));
 		cv::resize(Left_Img, currLImage, cv::Size(), 1.0/scale, 1.0/scale);
 		cv::resize(Right_Img, currRImage, cv::Size(), 1.0/scale, 1.0/scale);
+			
 		// Initialize Patch Image for current scale
 		initPatch(scale);
 
@@ -244,16 +255,8 @@ void CStereoPM::operator()(cv::Mat &left, cv::Mat &right, cv::Mat &disp, int lay
 		// Start with (1,1) as the top-left corner is no up/left neighbor
 		for (int y = 1; y < currLImage.rows; y++)
 		{
-// 			if (l == 2)
-// 			{
-// 				std::cout << "y:" << y << "-";
-// 			}
 			for (int x = 1; x < currLImage.cols; x++)
 			{
-// 				if (l == 2)
-// 				{
-// 					std::cout << "x:" << x << ";";
-// 				}
 				// Spatial propagation
 				// Current cost
 				centre_cost = _cost->calcCost_A(cv::Point2i(x, y), Patch_Img_A[y*currLImage.cols + x]);
@@ -274,25 +277,15 @@ void CStereoPM::operator()(cv::Mat &left, cv::Mat &right, cv::Mat &disp, int lay
 				
 				if (x_b >= 0)	// Within image
 				{
-// 					std::cout << "|s|";
-// 					if (x_b >= currRImage.cols || x_b < 0)
-// 					{
-// 						int a = 1;
-// 					}
 					float a = _cost->calcCost_B(cv::Point2i(x_b, y), Patch_Img_B[y*currRImage.cols + x_b]);
 					float b = _cost->calcCost_B(cv::Point2i(x_b, y), Patch_Img_A[y*currLImage.cols + x]);
 					if (a > b)
 					{	
 						Patch_Img_B[y*currRImage.cols + x_b] = Patch_Img_A[y*currLImage.cols + x];
-						
 					}
 				}
 				planeRefine(Patch_Img_A[y*currLImage.cols + x]);
 			}
-// 			if (l == 2)
-// 			{
-// 				std::cout << "\n";
-// 			}
 		}
 		t = ((double)cv::getTickCount() - t)/cv::getTickFrequency();
 		std::cout << "Times passed in seconds: " << t << std::endl;
@@ -405,6 +398,11 @@ void CStereoPM::operator()(cv::Mat &left, cv::Mat &right, cv::Mat &disp, int lay
 		}
 		t = ((double)cv::getTickCount() - t)/cv::getTickFrequency();
 		std::cout << "Times passed in seconds: " << t << std::endl;
+// 		updateFloatDisp();
+// 		std::ofstream myfile;
+// 		myfile.open("test_disp.csv");
+// 		myfile << format(_f_disp_A,"csv") << std::endl << std::endl;
+// 		myfile.close();
 	}
 // 	updateDisp();
 // 	disp = _disp_A;
@@ -461,24 +459,51 @@ void CStereoPM::initPatch(int scale)
 	// 1. Only 1 scale (no pyramid); 2. Multi-scale, first scale (need random initialization)
 	// 3. Multi-scale, successor scale (initialized by previous patch)
 	unsigned char c = 0;
-	if (Patch_Img_Pre_A.empty() && scale == 1)
+	if (!_prevPM_exist && scale == 1)
 		c = 1;
-	else if (Patch_Img_Pre_A.empty() && scale > 1)
+	else if (!_prevPM_exist && scale > 1)
+	{
+		_prevPM_exist = true;
 		c = 2;
-	else if (!Patch_Img_Pre_A.empty())
+	}
+	else if (_prevPM_exist)
 		c = 3;
 	else
 		std::cerr << "unknown type of scale in CStereoPM::initPatch()!";
 
 	if (c == 3)	// Backup previous scale - Patch Image
 	{
+		Patch_Img_Pre_A.clear();
+		Patch_Img_Pre_B.clear();
+		Patch_Img_Pre_A = Patch_Img_A;
+		Patch_Img_Pre_B = Patch_Img_B;
 		Patch_Img_A.clear();
 		Patch_Img_B.clear();
 	}
 	// Reserve enough capacity for std::vector based on current image size (scale)
 	Patch_Img_A.reserve(currLImage.cols * currLImage.rows);
 	Patch_Img_B.reserve(currRImage.cols * currRImage.rows);
-
+	/************************************************************************/
+	/*                                                                      */
+	/************************************************************************/
+// 	if(c == 3)
+// 	{
+// 		for (int y = 0; y < currLImage.rows/2; y++)
+// 		{
+// 			for (int x = 0; x < currLImage.cols/2; x++)
+// 			{
+// 				_f_disp_A.at<float>(y, x) = Patch_Img_Pre_A[y * currLImage.cols/2 + x].disparity();
+// 				_f_disp_B.at<float>(y, x) = Patch_Img_Pre_A[y * currLImage.cols/2 + x].disparity();
+// 			}
+// 		}
+// 		std::ofstream myfile;
+// 		myfile.open("test_disp.csv");
+// 		myfile << format(_f_disp_A,"csv") << std::endl << std::endl;
+// 		myfile.close();
+// 	}	
+	/************************************************************************/
+	/*                                                                      */
+	/************************************************************************/
 	for (int y = 0; y < currLImage.rows; y++)
 	{
 		for (int x = 0; x < currLImage.cols; x++)
@@ -489,7 +514,6 @@ void CStereoPM::initPatch(int scale)
 					Patch_Img_A.push_back(CPatch(0.0, 0.0, 0.0, maxDisparity/scale));
 				else
 					Patch_Img_A.push_back(CPatch(x, y, maxDisparity/scale, CPatch::A));
-// 				std::cout << Patch_Img_A[0]._a << ";" << Patch_Img_A[0]._b << ";" << Patch_Img_A[0]._c << std::endl;
 
 				if (currRImage.at<uchar>(y,x) < 0)	// For invalid pixels init default plane
 					Patch_Img_B.push_back(CPatch(0.0, 0.0, 0.0, maxDisparity/scale));
@@ -501,16 +525,22 @@ void CStereoPM::initPatch(int scale)
 				int yy = y / 2, xx = x / 2;
 				Patch_Img_A.push_back(CPatch::fromCoarser(Patch_Img_Pre_A[yy * currLImage.cols / 2 + xx], x, y));
 				Patch_Img_B.push_back(CPatch::fromCoarser(Patch_Img_Pre_B[yy * currRImage.cols / 2 + xx], x, y));
+				
+// 				std::cout << "Index in Prev: " << yy * currLImage.cols / 2 + xx << "|| ";
+// 				std::cout << "(" << xx << "," << yy << ") " <<
+// 					Patch_Img_Pre_A[yy * currLImage.cols / 2 + xx].disparity() << ";  ";
+// 				std::cout << "(" << x << "," << y << ") " 
+// 					<< Patch_Img_A[y * currLImage.cols + x].disparity() << ";" << std::endl;
 			}
 		}
 	}
-	if (scale > 1)	// If multi-scale and not the finest layer, backup current Patch Image
-	{
-		Patch_Img_Pre_A.clear();
-		Patch_Img_Pre_B.clear();
-		Patch_Img_Pre_A = Patch_Img_A;
-		Patch_Img_Pre_B = Patch_Img_B;
-	}
+// 	if (scale > 1)	// If multi-scale and not the finest layer, backup current Patch Image
+// 	{
+// 		Patch_Img_Pre_A.clear();
+// 		Patch_Img_Pre_B.clear();
+// 		Patch_Img_Pre_A = Patch_Img_A;
+// 		Patch_Img_Pre_B = Patch_Img_B;
+// 	}
 }
 
 void CStereoPM::updateDisp()
@@ -557,12 +587,12 @@ void CStereoPM::updateDispB()
 
 void CStereoPM::updateFloatDisp()
 {
-	for (int y = 0; y < _imgSize.height; y++)
+	for (int y = 0; y < currLImage.rows; y++)
 	{
-		for (int x = 0; x < _imgSize.width; x++)
+		for (int x = 0; x < currLImage.cols; x++)
 		{
-			_f_disp_A.at<float>(y, x) = Patch_Img_A[y * _imgSize.width + x].disparity();
-			_f_disp_B.at<float>(y, x) = Patch_Img_B[y * _imgSize.width + x].disparity();
+			_f_disp_A.at<float>(y, x) = Patch_Img_A[y * currLImage.cols + x].disparity();
+			_f_disp_B.at<float>(y, x) = Patch_Img_B[y * currLImage.cols + x].disparity();
 		}
 	}
 }

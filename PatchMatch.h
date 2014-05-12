@@ -31,6 +31,8 @@ private:
 	cv::Mat _f_disp_A, _f_disp_B;
 	// Image size
 	cv::Size _imgSize;
+	// flag for multi-scale PatchMatch
+	bool _prevPM_exist;
 	
 	cv::RNG rng_refine;
 	cv::Ptr<CCostFunction> _cost;

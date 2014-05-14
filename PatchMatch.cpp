@@ -65,9 +65,13 @@ void CStereoPM::operator()(cv::Mat &left, cv::Mat &right, cv::Mat &disp)
 					up_cost = _cost->calcCost_A(cv::Point2i(x, y), Patch_Img_A[(y-1)*_imgSize.width + x]);					
 					// Left neighbor
 					left_cost = _cost->calcCost_A(cv::Point2i(x, y), Patch_Img_A[y*_imgSize.width + x - 1]);
-					
+// 					if (x > 20 && y > 20 && x < 330 && y < 330)
+// 					{
+// 						std::cout << "(" << x << "," << y << ")" ;
+// 					}
 					if (centre_cost > up_cost && left_cost > up_cost) // upper neighbor is best
 					{
+						
 						Patch_Img_A[y*_imgSize.width + x] = Patch_Img_A[(y-1)*_imgSize.width + x];
 					}
 					else if (centre_cost > left_cost && up_cost > left_cost) // left neighbor is best
@@ -88,6 +92,7 @@ void CStereoPM::operator()(cv::Mat &left, cv::Mat &right, cv::Mat &disp)
 			}
 			t = ((double)cv::getTickCount() - t)/cv::getTickFrequency();
 			std::cout << "Times passed in seconds: " << t << std::endl;
+
 			// Image b (odd)
 			std::cout << "Odd Image B\n";
 			t = (double)cv::getTickCount();
@@ -455,6 +460,7 @@ void CStereoPM::planeRefine(CPatch & curr_ptch)
 
 void CStereoPM::initPatch(int scale)
 {
+	std::cout << "In init!!" << std::endl;
 	// Three cases need to be deal with:
 	// 1. Only 1 scale (no pyramid); 2. Multi-scale, first scale (need random initialization)
 	// 3. Multi-scale, successor scale (initialized by previous patch)

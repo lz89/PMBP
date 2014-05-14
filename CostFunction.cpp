@@ -36,7 +36,7 @@ double CCostFunction::calcCost_A(const cv::Point2i in_pixel, CPatch &in_patch)
 	double cost = 0;
 	uchar p_i = _aimg_exp.at<uchar>(in_pixel);
 	uchar q_i = 0;
-	uchar num_valid_neighbor = 0;
+	int num_valid_neighbor = 0;
 	// For each query pixel, its aggregated cost is calculated from the neighbors
 	for (int qy = in_pixel.y - _offsetY; qy < in_pixel.y + _offsetY; qy++)
 	{
@@ -83,7 +83,7 @@ double CCostFunction::calcCost_B(const cv::Point2i in_pixel, CPatch &in_patch)
 	double cost = 0;
 	uchar p_i = _bimg_exp.at<uchar>(in_pixel);
 	uchar q_i = 0;
-	uchar num_valid_neighbor = 0;
+	int num_valid_neighbor = 0;
 	for (int qy = in_pixel.y - _offsetY; qy < in_pixel.y + _offsetY; qy++)
 	{
 		for (int qx = in_pixel.x - _offsetX; qx < in_pixel.x + _offsetX; qx++)

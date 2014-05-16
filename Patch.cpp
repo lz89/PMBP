@@ -19,6 +19,12 @@ _px(px), _py(py), _max_disp(maxdisp), side(i_side)
 CPatch::CPatch(float a, float b, float c, int maxdisp) : _a(a), _b(b), _c(c), _max_disp(maxdisp)
 {}
 
+CPatch::CPatch(int px, int py, double initZ, int maxdisp, IMAGE_SIDE i_side):
+_px(px), _py(py), _max_disp(maxdisp), side(i_side)
+{
+	Init(initZ);
+}
+
 CPatch CPatch::fromCoarser(const CPatch &coarse_patch, int currPx, int currPy)
 {
 	float curr_a, curr_b;	
@@ -104,24 +110,45 @@ void CPatch::setPatch(double nx, double ny, double nz, double z0)
 	_c = (nx*_px + ny*_py + nz*z0) / nz;
 }
 
-void CPatch::Init()
+void CPatch::Init(double iz)
 {	
 	bool flag = false;
 	double nx, ny, nz, z0;
-	if (side == A)
+	if (iz < 0)
 	{
-		z0 = rng_z0_A.uniform(0.0, _max_disp);
-		nx = rng_nx_A.gaussian(1);
-		ny = rng_ny_A.gaussian(1);
-		nz = rng_nz_A.gaussian(1);
+		if (side == A)
+		{
+			z0 = rng_z0_A.uniform(0.0, _max_disp);
+			nx = rng_nx_A.gaussian(1);
+			ny = rng_ny_A.gaussian(1);
+			nz = rng_nz_A.gaussian(1);
+		}
+		else
+		{
+			z0 = rng_z0_B.uniform(0.0, _max_disp);
+			nx = rng_nx_B.gaussian(1);
+			ny = rng_ny_B.gaussian(1);
+			nz = rng_nz_B.gaussian(1);
+		}
 	}
-	else
+	else	// Init with know disparity (z0)
 	{
-		z0 = rng_z0_B.uniform(0.0, _max_disp);
-		nx = rng_nx_B.gaussian(1);
-		ny = rng_ny_B.gaussian(1);
-		nz = rng_nz_B.gaussian(1);
+		if (side == A)
+		{
+			z0 = iz;
+			nx = rng_nx_A.gaussian(1);
+			ny = rng_ny_A.gaussian(1);
+			nz = rng_nz_A.gaussian(1);
+		}
+		else
+		{
+			z0 = iz;
+			nx = rng_nx_B.gaussian(1);
+			ny = rng_ny_B.gaussian(1);
+			nz = rng_nz_B.gaussian(1);
+		}
 	}
+	
 
 	// Generate unit vector pointing to uniformly distributed direction
 	// Method 1

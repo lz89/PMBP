@@ -37,7 +37,7 @@ private:
 	cv::RNG rng_refine;
 	cv::Ptr<CCostFunction> _cost;
 	// Initialize patch for each pixel
-	void initPatch(int scale = 1);
+	void initPatch(int scale = 1, cv::Mat initDisp = cv::Mat::zeros(0,0,CV_64FC1));
 	// Update disparity image based on current Patch_Img
 	void updateDisp();
 	void updateDispA();

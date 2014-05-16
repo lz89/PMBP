@@ -17,6 +17,7 @@ public:
 
 	CPatch(int px, int py, int maxdisp, IMAGE_SIDE side);
 	CPatch(float a, float b, float c, int maxdisp);
+	CPatch(int px, int py, double initZ, int maxdisp, IMAGE_SIDE side);
 	// Overload assignment operator
 	CPatch& operator=(CPatch copy_Patch);
 	void swap(CPatch& other);
@@ -38,7 +39,7 @@ private:
 	static cv::RNG rng_z0_B, rng_nx_B, rng_ny_B, rng_nz_B;
 
 	// Randomly initialize the patch parameters
-	void Init();
+	void Init(double iz = -1);
 
 };
 

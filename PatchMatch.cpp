@@ -235,8 +235,13 @@ void CStereoPM::operator()(cv::Mat &left, cv::Mat &right, cv::Mat &disp, int lay
 	_disp_B.create( Right_Img.size(), CV_16S);
 	_f_disp_A = cv::Mat::zeros(Left_Img.size(), CV_32F);
 	_f_disp_B = cv::Mat::zeros(Right_Img.size(), CV_32F);
-// 	_f_disp_A.create(Left_Img.size(), CV_32F);
-// 	_f_disp_B.create(Right_Img.size(), CV_32F);
+
+	// Load GT data (temp)
+	cv::Mat gt_disp;
+	cv::FileStorage fs( "heartGT.yml", cv::FileStorage::READ);
+	fs["GT"] >> gt_disp;
+	assert(gt_disp.size() == Left_Img.size());
+	cv::Mat curr_gt_disp;
 
 	for (int l = layer; l >= 1; l--)
 	{		
@@ -246,9 +251,12 @@ void CStereoPM::operator()(cv::Mat &left, cv::Mat &right, cv::Mat &disp, int lay
 // 		cv::pyrDown(Right_Img, currRImage, cv::Size(_imgSize.width / scale, _imgSize.height / scale));
 		cv::resize(Left_Img, currLImage, cv::Size(), 1.0/scale, 1.0/scale);
 		cv::resize(Right_Img, currRImage, cv::Size(), 1.0/scale, 1.0/scale);
+		cv::resize(gt_disp, curr_gt_disp, cv::Size(), 1.0/scale, 1.0/scale);
+
 			
 		// Initialize Patch Image for current scale
-		initPatch(scale);
+// 		initPatch(scale);
+		initPatch(scale, curr_gt_disp);	// with initialization
 
 		// For each scale, cost function is different
 		_cost = new CCostFunction(currLImage, currRImage, cv::Size(WindowSize/scale, WindowSize/scale), 10, 0.9f, 10, 2);
@@ -282,6 +290,10 @@ void CStereoPM::operator()(cv::Mat &left, cv::Mat &right, cv::Mat &disp, int lay
 				
 				if (x_b >= 0)	// Within image
 				{
+					if ((y*currRImage.cols + x_b) > Patch_Img_B.size())
+					{
+						std::cout << Patch_Img_A[y*currLImage.cols + x].disparity() << std::endl;
+					}
 					float a = _cost->calcCost_B(cv::Point2i(x_b, y), Patch_Img_B[y*currRImage.cols + x_b]);
 					float b = _cost->calcCost_B(cv::Point2i(x_b, y), Patch_Img_A[y*currLImage.cols + x]);
 					if (a > b)
@@ -403,11 +415,11 @@ void CStereoPM::operator()(cv::Mat &left, cv::Mat &right, cv::Mat &disp, int lay
 		}
 		t = ((double)cv::getTickCount() - t)/cv::getTickFrequency();
 		std::cout << "Times passed in seconds: " << t << std::endl;
-// 		updateFloatDisp();
-// 		std::ofstream myfile;
-// 		myfile.open("test_disp.csv");
-// 		myfile << format(_f_disp_A,"csv") << std::endl << std::endl;
-// 		myfile.close();
+		updateFloatDisp();
+		std::ofstream myfile;
+		myfile.open("test_disp.csv");
+		myfile << format(_f_disp_A,"csv") << std::endl << std::endl;
+		myfile.close();
 	}
 // 	updateDisp();
 // 	disp = _disp_A;
@@ -458,9 +470,8 @@ void CStereoPM::planeRefine(CPatch & curr_ptch)
 	
 }
 
-void CStereoPM::initPatch(int scale)
+void CStereoPM::initPatch(int scale, cv::Mat initDisp)
 {
-	std::cout << "In init!!" << std::endl;
 	// Three cases need to be deal with:
 	// 1. Only 1 scale (no pyramid); 2. Multi-scale, first scale (need random initialization)
 	// 3. Multi-scale, successor scale (initialized by previous patch)
@@ -519,12 +530,27 @@ void CStereoPM::initPatch(int scale)
 				if (currLImage.at<uchar>(y,x) < 0)	// For invalid pixels init default plane
 					Patch_Img_A.push_back(CPatch(0.0, 0.0, 0.0, maxDisparity/scale));
 				else
+				{
+					if (!initDisp.empty())	// When need to initialize with known disparity
+					{
+						if(initDisp.at<double>(y, x) > 0)	// current position has valid init disparity
+						{
+							Patch_Img_A.push_back(CPatch(x, y, initDisp.at<double>(y, x)/scale, maxDisparity/scale, CPatch::A));
+							// InitDisp isn't implemented for Patch_Img_B
+							if (currRImage.at<uchar>(y,x) < 0)	// For invalid pixels init default plane
+								Patch_Img_B.push_back(CPatch(0.0, 0.0, 0.0, maxDisparity/scale));
+							else
+								Patch_Img_B.push_back(CPatch(x, y, maxDisparity/scale, CPatch::B));
+							continue;
+						}
+					}
 					Patch_Img_A.push_back(CPatch(x, y, maxDisparity/scale, CPatch::A));
-
-				if (currRImage.at<uchar>(y,x) < 0)	// For invalid pixels init default plane
-					Patch_Img_B.push_back(CPatch(0.0, 0.0, 0.0, maxDisparity/scale));
-				else
-					Patch_Img_B.push_back(CPatch(x, y, maxDisparity/scale, CPatch::B));
+					// InitDisp isn't implemented for Patch_Img_B
+					if (currRImage.at<uchar>(y,x) < 0)	// For invalid pixels init default plane
+						Patch_Img_B.push_back(CPatch(0.0, 0.0, 0.0, maxDisparity/scale));
+					else
+						Patch_Img_B.push_back(CPatch(x, y, maxDisparity/scale, CPatch::B));
+				}		
 			}
 			else // c = 3, Patch Image is initialized by previous scale
 			{
